@@ -39,27 +39,35 @@ def getSelectedObjects(selectionInput):
       objects.append(selectedObj)
   return objects
 
+def selectFile():
+  app = adsk.core.Application.get()
+  ui  = app.userInterface
 
-def draw(selectedPlane):
+  fileDialog = ui.createFileDialog()
+  fileDialog.isMultiSelectEnabled = False
+  fileDialog.title = "Select SVG file"
+  fileDialog.filter = "*.svg"
+  # fileDialog.initialDirectory = ""
+  dialogResult = fileDialog.showOpen()
+
+  if (dialogResult == adsk.core.DialogResults.DialogOK):
+    filepath = fileDialog.filename
+    ui.messageBox(filepath)
+    return filepath
+
+
+def draw(selectedPlane, selectedFile):
   try:
     app = adsk.core.Application.get()
     ui  = app.userInterface
-
     product = app.activeProduct
     rootComp = product.rootComponent
     extrudes = rootComp.features.extrudeFeatures
-
     design = adsk.fusion.Design.cast(product)
-    ui.messageBox('Hello addin again')
 
     rootComp = design.rootComponent
     extrudes = rootComp.features.extrudeFeatures
-
     sketches = rootComp.sketches
-
-    # hoge = selectedPlane.objectType
-    # ui.messageBox(hoge)
-    # return
 
     planes = rootComp.constructionPlanes
     planeInput = planes.createInput()
@@ -68,7 +76,7 @@ def draw(selectedPlane):
     planeOne = planes.add(planeInput)
 
     sketch = sketches.add(planeOne)
-    svg = sketch.importSVG('/Users/ryosuzuki//Desktop/test.svg', -30, -30, 0.01)
+    svg = sketch.importSVG(selectedFile, -30, -30, 0.01)
 
     for i in range(sketch.profiles.count):
       prof = sketch.profiles.item(i)
@@ -134,8 +142,9 @@ class TestCommand(Fusion360CommandBase.Fusion360CommandBase):
     # Get Input values
     # (objects, plane, edge, spacing) = getInputs(command, inputs)
     plane = getInputs(command, inputs)
+    filepath = selectFile()
     if (plane):
-      draw(plane)
+      draw(plane, filepath)
 
   def onCreate(self, command, inputs):
     selectionPlaneInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_plane', 'Select Base Face', 'Select Face to mate to')
