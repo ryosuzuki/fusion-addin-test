@@ -40,6 +40,8 @@ def getSelectedObjects(selectionInput):
   return objects
 
 def selectFile():
+  return "/Users/ryosuzuki/Desktop/test.svg"
+
   app = adsk.core.Application.get()
   ui  = app.userInterface
 
@@ -78,12 +80,17 @@ def draw(selectedPlane, selectedFile):
     sketch = sketches.add(planeOne)
     svg = sketch.importSVG(selectedFile, -30, -30, 0.01)
 
+    materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
+    appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)")
+    # appearance = materialLib.itemByName("Paint - Enamel Glossy (Yellow)")
+
     for i in range(sketch.profiles.count):
       prof = sketch.profiles.item(i)
       distance = adsk.core.ValueInput.createByReal(0.1)
       extrude1 = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
       body1 = extrude1.bodies.item(0)
       body1.name = "simple"
+      body1.appearance = appearance
 
     # # Add construction plane by angle
     # angle = adsk.core.ValueInput.createByString('30.0 deg')
