@@ -26,7 +26,7 @@ def getInputs(command, inputs):
     # TODO this probably requires much better error handling
     # return
   # return(objects, plane, edge, spacing, subAssy)
-  return plane # (objects, plane, edge, spacing)
+  return (objects, plane) # (objects, plane, edge, spacing)
 
 def getSelectedObjects(selectionInput):
   objects = []
@@ -57,7 +57,6 @@ def selectFile():
     ui.messageBox(filepath)
     return filepath
 
-
 def draw(selectedPlane, selectedFile):
   try:
     app = adsk.core.Application.get()
@@ -86,11 +85,107 @@ def draw(selectedPlane, selectedFile):
 
     for i in range(sketch.profiles.count):
       prof = sketch.profiles.item(i)
-      distance = adsk.core.ValueInput.createByReal(0.1)
+      distance = adsk.core.ValueInput.createByReal(-1)
       extrude1 = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+      extrude1.participantBodies = "cut"
       body1 = extrude1.bodies.item(0)
       body1.name = "simple"
       body1.appearance = appearance
+
+  except:
+    if ui:
+      ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
+
+def healthState(object):
+  health = object.healthState
+  if health == adsk.fusion.FeatureHealthStates.ErrorFeatureHealthState or health == adsk.fusion.FeatureHealthStates.WarningFeatureHealthState:
+      message = planeOne.errorOrWarningMessage
+
+def componentsFromBodies(items):
+  components = []
+  for item in items:
+    originalBody = item[1]
+    copiedBody = originalBody.copyToComponent(originalBody.parentComponent)
+    outputBody = originalBody.createComponent()
+
+    component = {
+      'output_body': outputBody,
+      'copied_body': copiedBody,
+      'mid_face': item[0],
+      'end_face': item[2]
+    }
+    components.append(component)
+  return components
+
+
+
+class TestCommand(Fusion360CommandBase.Fusion360CommandBase):
+  def onPreview(self, command, inputs):
+    pass
+
+  def onDestroy(self, command, inputs, reason_):
+    pass
+
+  def onInputChanged(self, command, inputs, changedInput):
+    pass
+
+  def onExecute(self, command, inputs):
+    # (objects, plane, edge, spacing) = getInputs(command, inputs)
+    (objects, plane) = getInputs(command, inputs)
+    filepath = selectFile()
+    if (plane):
+      draw(plane, filepath)
+
+    return
+
+
+    app = adsk.core.Application.get()
+    ui  = app.userInterface
+    product = app.activeProduct
+    design = adsk.fusion.Design.cast(product)
+    rootComp = design.rootComponent
+
+    targetBody = rootComp.bRepBodies.item(0)
+    spacing = 10
+    quantity = 10
+    plane = targetBody.parentComponent.xZConstructionPlane
+    thickness = 1
+
+    results = slice(targetBody, spacing, quantity, plane, thickness)
+
+    components = componentsFromBodies(results)
+
+    # futil.combine_feature(point[1], tool_bodies, adsk.fusion.FeatureOperations.CutFeatureOperation)
+
+    combineFeatures = targetBody.parentComponent.features.combineFeatures
+
+    combineTools = adsk.core.ObjectCollection.create()
+    for tool in tool_bodies:
+      combineTools.add(tool)
+
+    # Create Combine Feature
+    combine_input = combine_features.createInput(target_body, combine_tools)
+    combine_input.operation = operation
+    combine_features.add(combine_input)
+
+  def onCreate(self, command, inputs):
+    selectionPlaneInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_plane', 'Select Base Face', 'Select Face to mate to')
+    selectionPlaneInput.setSelectionLimits(1,1)
+    selectionPlaneInput.addSelectionFilter('PlanarFaces')
+
+    selectionInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_selection', 'Select other faces', 'Select bodies or occurrences')
+    selectionInput.setSelectionLimits(1,0)
+    selectionInput.addSelectionFilter('PlanarFaces')
+
+    selectionEdgeInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_edge', 'Select Direction (edge)', 'Select an edge to define spacing direction')
+    selectionEdgeInput.setSelectionLimits(1,1)
+    selectionEdgeInput.addSelectionFilter('LinearEdges')
+
+    app = adsk.core.Application.get()
+    product = app.activeProduct
+    design = adsk.fusion.Design.cast(product)
+    unitsMgr = design.unitsManager
+    spacingInput = inputs.addValueInput(command.parentCommandDefinition.id + '_spacing', 'Component Spacing', unitsMgr.defaultLengthUnits, adsk.core.ValueInput.createByReal(2.54))
 
     # # Add construction plane by angle
     # angle = adsk.core.ValueInput.createByString('30.0 deg')
@@ -123,51 +218,51 @@ def draw(selectedPlane, selectedFile):
     # planeInput.setByDistanceOnPath(sketchLineOne, distance)
     # planes.add(planeInput)
 
-  except:
-    if ui:
-      ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
-def healthState(object):
-  health = object.healthState
-  if health == adsk.fusion.FeatureHealthStates.ErrorFeatureHealthState or health == adsk.fusion.FeatureHealthStates.WarningFeatureHealthState:
-      message = planeOne.errorOrWarningMessage
+def slice(targetBody, spacing, qty, basePlane, thickness):
+  targetComp = targetBody.parentComponent
+  # Feature Collections
+  planes = targetComp.constructionPlanes
+  sketches = targetComp.sketches
+  thickenFeatures = targetComp.features.thickenFeatures
+  slices = []
+  thickness /= 2
 
+  for i in range(qty):
+    planeInput = planes.createInput()
+    offset = adsk.core.ValueInput.createByReal(i * spacing)
+    planeInput.setByOffset(basePlane, offset)
+    plane = planes.add(planeInput)
 
+    sketch = sketches.add(plane)
+    for curve in sketch.sketchCurves:
+      curve.isConstruction = True
+    sketch.projectCutEdges(targetBody)
 
+    for profile in sketch.profiles:
+      surfaces = adsk.core.ObjectCollection.create()
+      patches = targetComp.features.patchFeatures
+      patchInput = patches.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+      patchFeature = patches.add(patchInput)
 
-class TestCommand(Fusion360CommandBase.Fusion360CommandBase):
-  def onPreview(self, command, inputs):
-    pass
+      for face in patchFeature.faces:
+        point = face.pointOnFace
+        containment = targetBody.pointContainment(point)
+        if containment == adsk.fusion.PointContainment.PointInsidePointContainment:
+          surfaces.add(face)
+          thickness = adsk.core.ValueInput.createByReal((thickness/2))
+          thickenInput = thickenFeatures.createInput(surfaces, thickness, True,adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+          thickenFeatures = thickenFeatures.add(thickenInput)
+          newBody = thickenFeatures.bodies[0]
+          ret = face.evaluator.getNormalAtPoint(face.pointOnFace)
+          direction = ret[1]
+          # Not currently working or used
+          # end_face = find_end_face(thickenFeatures, direction)
 
-  def onDestroy(self, command, inputs, reason_):
-    pass
+          # slices.append((face, newBody, end_face))
+          slices.append((face, newBody))
 
-  def onInputChanged(self, command, inputs, changedInput):
-    pass
+        else:
+          patchFeature.deleteMe()
 
-  def onExecute(self, command, inputs):
-    # Get Input values
-    # (objects, plane, edge, spacing) = getInputs(command, inputs)
-    plane = getInputs(command, inputs)
-    filepath = selectFile()
-    if (plane):
-      draw(plane, filepath)
-
-  def onCreate(self, command, inputs):
-    selectionPlaneInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_plane', 'Select Base Face', 'Select Face to mate to')
-    selectionPlaneInput.setSelectionLimits(1,1)
-    selectionPlaneInput.addSelectionFilter('PlanarFaces')
-
-    selectionInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_selection', 'Select other faces', 'Select bodies or occurrences')
-    selectionInput.setSelectionLimits(1,0)
-    selectionInput.addSelectionFilter('PlanarFaces')
-
-    selectionEdgeInput = inputs.addSelectionInput(command.parentCommandDefinition.id + '_edge', 'Select Direction (edge)', 'Select an edge to define spacing direction')
-    selectionEdgeInput.setSelectionLimits(1,1)
-    selectionEdgeInput.addSelectionFilter('LinearEdges')
-
-    app = adsk.core.Application.get()
-    product = app.activeProduct
-    design = adsk.fusion.Design.cast(product)
-    unitsMgr = design.unitsManager
-    spacingInput = inputs.addValueInput(command.parentCommandDefinition.id + '_spacing', 'Component Spacing', unitsMgr.defaultLengthUnits, adsk.core.ValueInput.createByReal(2.54))
+  return slices
