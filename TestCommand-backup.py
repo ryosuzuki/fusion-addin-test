@@ -40,7 +40,7 @@ def getSelectedObjects(selectionInput):
   return objects
 
 def selectFile():
-  # return "/Users/ryosuzuki/Desktop/test.svg"
+  return "/Users/ryosuzuki/Desktop/test.svg"
 
   app = adsk.core.Application.get()
   ui  = app.userInterface
@@ -54,80 +54,50 @@ def selectFile():
 
   if (dialogResult == adsk.core.DialogResults.DialogOK):
     filepath = fileDialog.filename
+    ui.messageBox(filepath)
     return filepath
 
-
-def visualize():
-  app = adsk.core.Application.get()
-  ui  = app.userInterface
-  product = app.activeProduct
-  rootComp = product.rootComponent
-  extrudes = rootComp.features.extrudeFeatures
-  design = adsk.fusion.Design.cast(product)
-  rootComp = design.rootComponent
-  sketches = rootComp.sketches
-
-  toolBodies = adsk.core.ObjectCollection.create()
-
-  for i in range(sketch.profiles.count):
-    prof = sketch.profiles.item(i)
-    distance = adsk.core.ValueInput.createByReal(0.1)
-    extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    extInput.setDistanceExtent(False, distance)
-    extrude1 = extrudes.add(extInput)
-    for body in extrude1.bodies:
-      body.name = "simple"
-      body.appearance = appearance
-      toolBodies.add(body)
-
-  targetBody = rootComp.bRepBodies.item(0)
-  combineCutInput = rootComp.features.combineFeatures.createInput(targetBody, toolBodies)
-  combineCutInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
-  result = rootComp.features.combineFeatures.add(combineCutInput)
-
-  resultBodies = adsk.core.ObjectCollection.create()
-  for body in result.bodies:
-    body.name = "result"
-    body.appearance = appearance
-    resultBodies.add(body)
-
-
 def draw(selectedPlane, selectedFile):
-  app = adsk.core.Application.get()
-  ui  = app.userInterface
-  product = app.activeProduct
-  rootComp = product.rootComponent
-  extrudes = rootComp.features.extrudeFeatures
-  design = adsk.fusion.Design.cast(product)
+  try:
+    app = adsk.core.Application.get()
+    ui  = app.userInterface
+    product = app.activeProduct
+    rootComp = product.rootComponent
+    extrudes = rootComp.features.extrudeFeatures
+    design = adsk.fusion.Design.cast(product)
 
-  rootComp = design.rootComponent
-  extrudes = rootComp.features.extrudeFeatures
-  sketches = rootComp.sketches
+    rootComp = design.rootComponent
+    extrudes = rootComp.features.extrudeFeatures
+    sketches = rootComp.sketches
 
-  planes = rootComp.constructionPlanes
-  planeInput = planes.createInput()
-  offset = adsk.core.ValueInput.createByReal(0)
-  planeInput.setByOffset(selectedPlane, offset)
-  # planeInput.setByOffset(basePlane, offsetValue)
-  planeOne = planes.add(planeInput)
+    # basePlane = rootComp.xZConstructionPlane
 
-  sketch = sketches.add(planeOne)
-  svg = sketch.importSVG(selectedFile, -30, -30, 0.01)
+    planes = rootComp.constructionPlanes
+    planeInput = planes.createInput()
+    offsetValue = adsk.core.ValueInput.createByReal(0)
+    # planeInput.setByOffset(basePlane, offsetValue)
+    planeInput.setByOffset(selectedPlane, offsetValue)
+    planeOne = planes.add(planeInput)
 
-  materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
-  appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)") # "Paint - Enamel Glossy (Yellow)"
+    sketch = sketches.add(planeOne)
+    svg = sketch.importSVG(selectedFile, -30, -30, 0.01)
 
-  toolBodies = adsk.core.ObjectCollection.create()
-  for i in range(sketch.profiles.count):
-    prof = sketch.profiles.item(i)
-    distance = adsk.core.ValueInput.createByReal(0.1)
-    extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    extInput.setDistanceExtent(False, distance)
-    extrude1 = extrudes.add(extInput)
-    for body in extrude1.bodies:
-      body.appearance = appearance
-      toolBodies.add(body)
+    materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
+    appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)")
+    # appearance = materialLib.itemByName("Paint - Enamel Glossy (Yellow)")
 
+    for i in range(sketch.profiles.count):
+      prof = sketch.profiles.item(i)
+      distance = adsk.core.ValueInput.createByReal(0.1)
+      extrude1 = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+      # extrude1.participantBodies = "cut"
+      body1 = extrude1.bodies.item(0)
+      body1.name = "simple"
+      body1.appearance = appearance
+
+  except:
+    if ui:
+      ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
 def healthState(object):
   health = object.healthState
