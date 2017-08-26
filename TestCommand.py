@@ -56,42 +56,6 @@ def selectFile():
     filepath = fileDialog.filename
     return filepath
 
-
-def visualize():
-  app = adsk.core.Application.get()
-  ui  = app.userInterface
-  product = app.activeProduct
-  rootComp = product.rootComponent
-  extrudes = rootComp.features.extrudeFeatures
-  design = adsk.fusion.Design.cast(product)
-  rootComp = design.rootComponent
-  sketches = rootComp.sketches
-
-  toolBodies = adsk.core.ObjectCollection.create()
-
-  for i in range(sketch.profiles.count):
-    prof = sketch.profiles.item(i)
-    distance = adsk.core.ValueInput.createByReal(0.1)
-    extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    extInput.setDistanceExtent(False, distance)
-    extrude1 = extrudes.add(extInput)
-    for body in extrude1.bodies:
-      body.name = "simple"
-      body.appearance = appearance
-      toolBodies.add(body)
-
-  targetBody = rootComp.bRepBodies.item(0)
-  combineCutInput = rootComp.features.combineFeatures.createInput(targetBody, toolBodies)
-  combineCutInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
-  result = rootComp.features.combineFeatures.add(combineCutInput)
-
-  resultBodies = adsk.core.ObjectCollection.create()
-  for body in result.bodies:
-    body.name = "result"
-    body.appearance = appearance
-    resultBodies.add(body)
-
-
 def draw(selectedPlane, selectedFile):
   app = adsk.core.Application.get()
   ui  = app.userInterface
@@ -126,6 +90,7 @@ def draw(selectedPlane, selectedFile):
     extrude1 = extrudes.add(extInput)
     for body in extrude1.bodies:
       body.appearance = appearance
+      body.name = "sheet"
       toolBodies.add(body)
 
 

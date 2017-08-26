@@ -1,19 +1,30 @@
 from . import TestCommand
+from . import VisualizeCommand
 
-commandName = 'Test'
-commandDescription = 'Test Command for Fusion 360'
-commandResources = './resources'
-cmdId = 'cmdID_Test'
-myWorkspace = 'FusionSolidEnvironment'
-myToolbarPanelID = 'SolidScriptsAddinsPanel'
-
+name = 'Test'
+description = 'Test Command for Fusion 360'
+resources = './resources'
+cid = 'cmdID_Test'
+workspace = 'FusionSolidEnvironment'
+pid = 'SolidScriptsAddinsPanel'
 debug = False
 
-newCommand = TestCommand.TestCommand(commandName, commandDescription, commandResources, cmdId, myWorkspace, myToolbarPanelID, debug)
+testCommand = TestCommand.TestCommand(name, description, resources, cid, workspace, pid, debug)
 
+name = 'Visualize'
+description = 'Visualize Command for Fusion 360'
+resources = './resources'
+cid = 'cmdID_Visualize'
+workspace = 'FusionSolidEnvironment'
+pid = 'SolidScriptsAddinsPanel'
+debug = False
+
+visualizeCommand = VisualizeCommand.VisualizeCommand(name, description, resources, cid, workspace, pid, debug)
 
 def run(context):
-  newCommand.onRun()
+  testCommand.onRun()
+  visualizeCommand.onRun()
 
 def stop(context):
-  newCommand.onStop()
+  testCommand.onStop()
+  visualizeCommand.onStop()
