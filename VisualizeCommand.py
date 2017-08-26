@@ -20,6 +20,8 @@ def visualize():
   yPos = 0
   yMax = 0
 
+  rMax = 0
+
   for i in range(rootComp.bRepBodies.count):
     body = rootComp.bRepBodies.item(i)
     box = body.boundingBox
@@ -36,7 +38,12 @@ def visualize():
     if (yMax < box.maxPoint.y):
       yMax = box.maxPoint.y
 
-  ui.messageBox("%f %f" % (yPos, yMax))
+    tMax = max(abs(box.maxPoint.x), abs(box.minPoint.x), abs(box.maxPoint.z), abs(box.minPoint.z))
+    if rMax < tMax:
+      rMax = tMax
+
+  rMax = rMax * 2
+  ui.messageBox("%f %f %f" % (yPos, yMax, rMax))
 
   resultBodies = adsk.core.ObjectCollection.create()
 
@@ -48,7 +55,7 @@ def visualize():
   sketch = sketches.add(rootComp.xZConstructionPlane)
   sketchCircles = sketch.sketchCurves.sketchCircles
   centerPoint = adsk.core.Point3D.create(0, 0, 0)
-  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, rMax)
   prof = sketch.profiles.item(0)
   distance = adsk.core.ValueInput.createByReal(yPos)
   temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
@@ -59,6 +66,7 @@ def visualize():
   combineInput.isKeepToolBodies = True
   combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
   result = combineFeatures.add(combineInput)
+  resultBodies = adsk.core.ObjectCollection.create()
   for body in result.bodies:
     body.name = "structure"
     resultBodies.add(body)
@@ -78,7 +86,7 @@ def visualize():
   sketch = sketches.add(planeOne)
   sketchCircles = sketch.sketchCurves.sketchCircles
   centerPoint = adsk.core.Point3D.create(0, 0, 0)
-  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, rMax)
   prof = sketch.profiles.item(0)
   distance = adsk.core.ValueInput.createByReal(0.1)
   temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
@@ -89,11 +97,20 @@ def visualize():
   combineInput.isKeepToolBodies = True
   combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
   result = combineFeatures.add(combineInput)
+  resultBodies = adsk.core.ObjectCollection.create()
+
   for body in result.bodies:
     body.name = "conductive"
     body.appearance = appearance
     resultBodies.add(body)
 
+  vector = adsk.core.Vector3D.create(0.0, 2.0, 0.0)
+  transform = adsk.core.Matrix3D.create()
+  transform.translation = vector
+
+  moveFeats = rootComp.features.moveFeatures
+  moveFeatureInput = moveFeats.createInput(resultBodies, transform)
+  moveFeats.add(moveFeatureInput)
 
   # yPos + 0.1 -- yMax
 
@@ -108,7 +125,7 @@ def visualize():
   sketch = sketches.add(planeOne)
   sketchCircles = sketch.sketchCurves.sketchCircles
   centerPoint = adsk.core.Point3D.create(0, 0, 0)
-  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, rMax)
   prof = sketch.profiles.item(0)
   distance = adsk.core.ValueInput.createByReal(yMax - (yPos + 0.1))
   temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
@@ -116,12 +133,21 @@ def visualize():
 
   combineFeatures = rootComp.features.combineFeatures
   combineInput = combineFeatures.createInput(body, originalBodies)
-  combineInput.isKeepToolBodies = True
+  # combineInput.isKeepToolBodies = True
   combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
   result = combineFeatures.add(combineInput)
+  resultBodies = adsk.core.ObjectCollection.create()
   for body in result.bodies:
     body.name = "structure"
     resultBodies.add(body)
+
+  vector = adsk.core.Vector3D.create(0.0, 2.0*2, 0.0)
+  transform = adsk.core.Matrix3D.create()
+  transform.translation = vector
+
+  moveFeats = rootComp.features.moveFeatures
+  moveFeatureInput = moveFeats.createInput(resultBodies, transform)
+  moveFeats.add(moveFeatureInput)
 
 
   # resultBodies = adsk.core.ObjectCollection.create()
