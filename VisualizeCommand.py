@@ -1,5 +1,5 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
-
+import copy
 from . import Fusion360CommandBase
 
 def visualize():
@@ -14,24 +14,128 @@ def visualize():
   materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
   appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)") # "Paint - Enamel Glossy (Yellow)"
 
-  targetBody = rootComp.bRepBodies.item(0)
+  targetBodies = adsk.core.ObjectCollection.create()
   toolBodies = adsk.core.ObjectCollection.create()
+
+  yPos = 0
+  yMax = 0
+
   for i in range(rootComp.bRepBodies.count):
     body = rootComp.bRepBodies.item(i)
-    if body.name.find("sheet") == 0:
-      body.appearance = appearance
-      toolBodies.add(body)
+    box = body.boundingBox
+    targetBodies.add(body)
 
-  combineCutInput = rootComp.features.combineFeatures.createInput(targetBody, toolBodies)
-  combineCutInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
-  result = rootComp.features.combineFeatures.add(combineCutInput)
+    if body.name.find("sheet") == 0:
+      toolBodies.add(body)
+    # else:
+
+    if body.name.find("sheet") == 0:
+      if (yPos < box.minPoint.y):
+        yPos = box.minPoint.y
+
+    if (yMax < box.maxPoint.y):
+      yMax = box.maxPoint.y
+
+  ui.messageBox("%f %f" % (yPos, yMax))
 
   resultBodies = adsk.core.ObjectCollection.create()
+
+
+  # 0 -- yPos
+
+  originalBodies = copy.copy(targetBodies)
+  sketches = rootComp.sketches
+  sketch = sketches.add(rootComp.xZConstructionPlane)
+  sketchCircles = sketch.sketchCurves.sketchCircles
+  centerPoint = adsk.core.Point3D.create(0, 0, 0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  prof = sketch.profiles.item(0)
+  distance = adsk.core.ValueInput.createByReal(yPos)
+  temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+  body = temp.bodies.item(0)
+
+  combineFeatures = rootComp.features.combineFeatures
+  combineInput = combineFeatures.createInput(body, targetBodies)
+  combineInput.isKeepToolBodies = True
+  combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
+  result = combineFeatures.add(combineInput)
   for body in result.bodies:
-    body.name = "result"
+    body.name = "structure"
+    resultBodies.add(body)
+
+
+
+  # yPos -- yPos+0.1
+
+  basePlane = rootComp.xZConstructionPlane
+  planes = rootComp.constructionPlanes
+  planeInput = planes.createInput()
+  offset = adsk.core.ValueInput.createByReal(yPos)
+  planeInput.setByOffset(basePlane, offset)
+  planeOne = planes.add(planeInput)
+
+  sketches = rootComp.sketches
+  sketch = sketches.add(planeOne)
+  sketchCircles = sketch.sketchCurves.sketchCircles
+  centerPoint = adsk.core.Point3D.create(0, 0, 0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  prof = sketch.profiles.item(0)
+  distance = adsk.core.ValueInput.createByReal(0.1)
+  temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+  body = temp.bodies.item(0)
+
+  combineFeatures = rootComp.features.combineFeatures
+  combineInput = combineFeatures.createInput(body, targetBodies)
+  combineInput.isKeepToolBodies = True
+  combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
+  result = combineFeatures.add(combineInput)
+  for body in result.bodies:
+    body.name = "conductive"
     body.appearance = appearance
     resultBodies.add(body)
 
+
+  # yPos + 0.1 -- yMax
+
+  basePlane = rootComp.xZConstructionPlane
+  planes = rootComp.constructionPlanes
+  planeInput = planes.createInput()
+  offset = adsk.core.ValueInput.createByReal(yPos+0.1)
+  planeInput.setByOffset(basePlane, offset)
+  planeOne = planes.add(planeInput)
+
+  sketches = rootComp.sketches
+  sketch = sketches.add(planeOne)
+  sketchCircles = sketch.sketchCurves.sketchCircles
+  centerPoint = adsk.core.Point3D.create(0, 0, 0)
+  circle = sketchCircles.addByCenterRadius(centerPoint, 10.0)
+  prof = sketch.profiles.item(0)
+  distance = adsk.core.ValueInput.createByReal(yMax - (yPos + 0.1))
+  temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+  body = temp.bodies.item(0)
+
+  combineFeatures = rootComp.features.combineFeatures
+  combineInput = combineFeatures.createInput(body, originalBodies)
+  combineInput.isKeepToolBodies = True
+  combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
+  result = combineFeatures.add(combineInput)
+  for body in result.bodies:
+    body.name = "structure"
+    resultBodies.add(body)
+
+
+  # resultBodies = adsk.core.ObjectCollection.create()
+  # for body in result.bodies:
+  #   body.name = "result"
+  #   body.appearance = appearance
+  #   resultBodies.add(body)
+
+
+  # for i in range(rootComp.bRepBodies.count):
+  #   body = rootComp.bRepBodies.item(i)
+  #   if body.name.find("sheet") == 0:
+      # body.appearance = appearance
+      # toolBodies.add(body)
 
 class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onPreview(self, command, inputs):
