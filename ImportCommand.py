@@ -1,88 +1,6 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from . import Fusion360CommandBase
 
-projectFiles = {}
-projects = None
-
-def getFile(projectName, fileName):
-  project = getProject(projectName)
-  if project:
-    dataFiles = project.rootFolder.dataFiles
-    for file in dataFiles:
-      if file.name == fileName:
-        return file
-  return None
-
-def getProject(projectName):
-  for project in projects:
-    if project.name == projectName:
-      return project
-  return None
-
-# returns first project's name
-def fillProjectsDictionary():
-  firstProject = None
-  for project in projects:
-    if not firstProject:
-      firstProject = project
-
-    global projectFiles
-    projectFiles[project.name] = None
-
-  return firstProject.name
-
-def fillFilesDictionary(projectName):
-  files = projectFiles[projectName]
-  if not files:
-    project = getProject(projectName)
-    dataFiles = project.rootFolder.dataFiles
-    files = {}
-    for file in dataFiles:
-      files[file.name] = file
-
-    projectFiles[projectName] = files
-
-def addItemsToDropdown(items, dropdownInput):
-  dropdownItems = dropdownInput.listItems
-  itemsToDelete = []
-  for dropdownItem in dropdownItems:
-    itemsToDelete.append(dropdownItem)
-  firstNewItem = None
-  for item in items:
-    newItem = dropdownItems.add(item, False, '')
-    if not firstNewItem:
-      firstNewItem = newItem
-      firstNewItem.isSelected = True
-  for dropdownItem in itemsToDelete:
-    dropdownItem.deleteMe()
-  return firstNewItem
-
-
-def getInputs(command, inputs):
-  selectionInput = None
-  for inputI in inputs:
-    global commandId
-    if inputI.id == command.parentCommandDefinition.id + '_project':
-      projectInput = inputI
-    elif inputI.id == command.parentCommandDefinition.id + 'file':
-      fileInput = inputI
-
-  projectName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_project').selectedItem.name
-  fileName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_file').selectedItem.name
-  file = getFile(projectName, fileName)
-
-
-
-  app = adsk.core.Application.get()
-  ui  = app.userInterface
-  ui.messageBox(projectInput)
-
-  projectName = projectInput
-  fileName = fileInput
-  file = getFile(projectName, fileName)
-  return file
-
-
 def getSelectedObjects(selectionInput):
   objects = []
   for i in range(0, selectionInput.selectionCount):
@@ -94,50 +12,68 @@ def getSelectedObjects(selectionInput):
       objects.append(selectedObj)
   return objects
 
+
 class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onPreview(self, command, inputs):
-    pass
+    return
+    self.ui.messageBox("preview")
+    self.project = self.projects[2]
+    self.projectFiles[self.project.name] = None
+    dropdownInput = inputs.addDropDownCommandInput(command.parentCommandDefinition.id + '_project', 'Project', adsk.core.DropDownStyles.TextListDropDownStyle)
+    addItemsToDropdown(self.projectFiles, dropdownInput)
+
+    self.files = self.projectFiles[self.project.name]
+    if not self.files:
+      self.dataFiles = self.project.rootFolder.dataFiles
+      self.files = {}
+      for file in self.dataFiles:
+        self.files[file.name] = file
+
+    dropdownInput = inputs.addDropDownCommandInput(command.parentCommandDefinition.id + '_file', 'File', adsk.core.DropDownStyles.TextListDropDownStyle)
+    addItemsToDropdown(self.files, dropdownInput)
 
   def onDestroy(self, command, inputs, reason_):
     pass
 
   def onInputChanged(self, command, inputs, changedInput):
-    if command.commandInput.id == command.parentCommandDefinition.id + '_project':
-
-      projectName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_project').selectedItem.name
-      fillFilesDictionary(projectName)
-      currentProject = projectFiles[projectName]
-      fileInput = command.commandInputs.itemById(command.parentCommandDefinition.id + '_file')
-      addItemsToDropdown(currentProject, fileInput)
+    targetId = command.parentCommandDefinition.id + '_file'
+    if changedInput.id == targetId:
+      name = command.commandInputs.itemById(targetId).selectedItem.name
+      self.file = self.files[name]
 
   def onCreate(self, command, inputs):
-    app = adsk.core.Application.get()
-    ui  = app.userInterface
-    global projects
-    projects = app.data.dataProjects
+    self.project = None
+    self.projects = []
+    self.files = []
+    self.projectNames = {}
+    self.fileNames = {}
 
-    fillProjectsDictionary()
+    self.app = adsk.core.Application.get()
+    self.ui  = self.app.userInterface
+    self.projects = self.app.data.dataProjects
+    self.project = self.projects[2]
+    self.files = self.project.rootFolder.dataFiles
+
+    self.projectNames[self.project.name] = self.project
     dropdownInput = inputs.addDropDownCommandInput(command.parentCommandDefinition.id + '_project', 'Project', adsk.core.DropDownStyles.TextListDropDownStyle)
-    projectItem = addItemsToDropdown(projectFiles, dropdownInput)
+    addItemsToDropdown(self.projectNames, dropdownInput)
 
-    fillFilesDictionary(projectItem.name)
+    self.fileNames = {}
+    self.file = self.files[2]
+    self.fileNames[self.file.name] = self.file
+    # for file in self.files:
+      # self.fileNames[file.name] = None
+
     dropdownInput = inputs.addDropDownCommandInput(command.parentCommandDefinition.id + '_file', 'File', adsk.core.DropDownStyles.TextListDropDownStyle)
-    project = projectFiles[projectItem.name]
-    addItemsToDropdown(project, dropdownInput)
-
+    addItemsToDropdown(self.fileNames , dropdownInput)
 
   def onExecute(self, command, inputs):
-    projectName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_project').selectedItem.name
-    fileName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_file').selectedItem.name
-    file = getFile(projectName, fileName)
-
-    app = adsk.core.Application.get()
-    design = app.activeProduct
+    design = self.app.activeProduct
     rootComp = design.rootComponent
     occs = rootComp.occurrences
 
     matrix = adsk.core.Matrix3D.create()
-    occ = occs.addByInsert(file, matrix, False)
+    occ = occs.addByInsert(self.file, matrix, False)
     materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
     appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)")
     occ.appearance = appearance
@@ -189,6 +125,22 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     # limits.restValue = 1.0
 
     return
+
+
+def addItemsToDropdown(items, dropdownInput):
+  dropdownItems = dropdownInput.listItems
+  itemsToDelete = []
+  for dropdownItem in dropdownItems:
+    itemsToDelete.append(dropdownItem)
+  firstNewItem = None
+  for item in items:
+    newItem = dropdownItems.add(item, False, '')
+    if not firstNewItem:
+      firstNewItem = newItem
+      firstNewItem.isSelected = True
+  for dropdownItem in itemsToDelete:
+    dropdownItem.deleteMe()
+  return firstNewItem
 
 
 def draw(selectedPlane, selectedFile):
@@ -245,3 +197,15 @@ def componentsFromBodies(items):
   return components
 
 
+  # def onInputChanged(self, command, inputs, changedInput):
+  #   return
+  #   for inputI in inputs:
+  #     if inputI.id == command.parentCommandDefinition.id + '_project':
+  #       projectInput = inputI
+  #       projectName = command.commandInputs.itemById(command.parentCommandDefinition.id + '_project').selectedItem.name
+  #       fillFilesDictionary(projectName)
+  #       currentProject = projectFiles[projectName]
+  #       fileInput = command.commandInputs.itemById(command.parentCommandDefinition.id + '_file')
+  #       addItemsToDropdown(currentProject, fileInput)
+  #     elif inputI.id == command.parentCommandDefinition.id + 'file':
+  #       fileInput = inputI
