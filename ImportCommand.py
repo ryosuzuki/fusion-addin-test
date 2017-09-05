@@ -1,6 +1,10 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from . import Fusion360CommandBase
 
+from . import VisualizeCommand
+from . import TestCommand
+
+
 class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onPreview(self, command, inputs):
     pass
@@ -63,16 +67,41 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     offset = adsk.core.ValueInput.createByReal(0)
     planeInput.setByOffset(self.plane, offset)
     plane = planes.add(planeInput)
+    plane.isLightBulbOn = False
     translate = plane.transform.translation
 
     matrix = adsk.core.Matrix3D.create()
-    # distance = 1
     matrix.translation = adsk.core.Vector3D.create(0, translate.y, 0)
 
     occ = occs.addByInsert(self.file, matrix, False)
     materialLib = self.app.materialLibraries.itemByName("Fusion 360 Appearance Library")
     appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)")
     occ.appearance = appearance
+
+    component = occ.component
+    component.name = "function"
+
+    # self.onCreate(command, inputs)
+    # testCommand = TestCommand.TestCommand('Visualize', '', './resources', 'visualize', 'FusionSolidEnvironment', 'SolidScriptsAddinsPanel', False)
+    # rootComp.occurrences
+    # testCommand.onCreate(command, inputs)
+
+
+
+    # component = occ.component
+
+    # transform = adsk.core.Matrix3D.create()
+    # transform.translation = adsk.core.Vector3D.create(0, 0, 0)
+
+
+    # collections = adsk.core.ObjectCollection.create()
+    # collections.add(component)
+
+    # features = rootComp.features
+    # moveFeats = features.moveFeatures
+    # moveFeatureInput = moveFeats.createInput(collections, transform)
+    # moveFeats.add(moveFeatureInput)
+
 
     # sketches = rootComp.sketches
 

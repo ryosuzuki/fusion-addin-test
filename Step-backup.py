@@ -10,12 +10,77 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     pass
 
   def onInputChanged(self, command, inputs, changedInput):
-    pass
+    # product = self.app.activeProduct
+    # rootComp = product.rootComponent
+
+    # # for i in range(rootComp.bRepBodies.count):
+    # body = rootComp.bRepBodies.item(0)
+    # body.isLightBulbOn = True
+    # body.deleteMe()
+
+    # # materialLib = self.app.materialLibraries.itemByName("Fusion 360 Appearance Library")
+    # # appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)") # "Paint - Enamel Glossy (Yellow)"
+    # # body.appearance = appearance
+    # # body.name = 'hoge'
+
+    # self.ui.messageBox('hoge')
+    self.init()
+    return
+
+    # if changedInput.id == self.commandId + '_button':
+    #   # sketch = self.component.sketches.item(0)
+    #   # fileDialog = self.ui.createFileDialog()
+    #   # fileDialog.title = "Save DXF file"
+    #   # fileDialog.initialFilename = "test.dxf"
+    #   # dialogResult = fileDialog.showSave()
+    #   # if (dialogResult == adsk.core.DialogResults.DialogOK):
+    #   #   filepath = fileDialog.filename
+    #   #   sketch.saveAsDXF(filepath)
+
+    #   for i in range(self.rootComp.bRepBodies.count):
+    #     body = self.rootComp.bRepBodies.item(i)
+    #     body.isLightBulbOn = False
+
+
+    # if changedInput.id == "APITabBar":
+    #   if command.commandInputs.itemById(self.commandId + "_step_1").isActive:
+    #     for i in range(self.rootComp.bRepBodies.count):
+    #       body = self.rootComp.bRepBodies.item(i)
+    #       if body.name.find('structure_0') == 0:
+    #         self.ui.messageBox(body.name)
+    #         # body.isLightBulbOn = True
+    #       else:
+    #         # body.isLightBulbOn = False
+    #         body
+
+    #   if command.commandInputs.itemById(self.commandId + "_step_2").isActive:
+    #     bodies = adsk.core.ObjectCollection.create()
+    #     for i in range(self.rootComp.bRepBodies.count):
+    #       body = self.rootComp.bRepBodies.item(i)
+    #       if body.name.find('structure_0') == 0 or body.name.find('conductive_0') == 0:
+    #         body.isLightBulbOn = True
+    #       else:
+    #         body.isLightBulbOn = False
+    #       bodies.add(body)
+
+    #     vector = adsk.core.Vector3D.create(0.0, 2.0, 0.0)
+    #     transform = adsk.core.Matrix3D.create()
+    #     transform.translation = vector
+
+    #     moveFeats = self.rootComp.features.moveFeatures
+    #     moveFeatureInput = moveFeats.createInput(bodies, transform)
+    #     moveFeats.add(moveFeatureInput)
+
+    #   if command.commandInputs.itemById(self.commandId + "_step_3").isActive:
+    #     for i in range(self.rootComp.bRepBodies.count):
+    #       body = self.rootComp.bRepBodies.item(i)
+    #       if body.name.find('structure') == 0 or body.name.find('conductive') == 0:
+    #         body.isLightBulbOn = True
+    #       else:
+    #         body.isLightBulbOn = False
+
 
   def onCreate(self, command, inputs):
-    pass
-
-  def onExecute(self, command, inputs):
     self.project = None
     self.projects = []
     self.files = []
@@ -27,8 +92,32 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
 
     self.app = adsk.core.Application.get()
     self.ui  = self.app.userInterface
-    self.init()
+    command.setDialogInitialSize(400, 800)
 
+
+    # Step 1
+    tabInput = inputs.addTabCommandInput(self.commandId + '_step_1', 'Step 1')
+    tabChildren = tabInput.children
+    image = tabChildren.addImageCommandInput(self.commandId + '_image', 'Image', "resources/step-1.png")
+    image.isFullWidth = True
+    tabChildren.addBoolValueInput(self.commandId + '_button', 'Download DXF', False)
+    # tabChildren.addButtonRowCommandInput(self.commandId + '_button', 'Download DXF', False)
+
+    # Step 2
+    tabInput = inputs.addTabCommandInput(self.commandId + '_step_2', 'Step 2')
+    tabChildren = tabInput.children
+
+    # Step 3
+    tabInput = inputs.addTabCommandInput(self.commandId + '_step_3', 'Step 3')
+    tabChildren = tabInput.children
+    tabChildren.addTextBoxCommandInput(self.commandId + '_textBox', 'Text Box', 'This is an example of Text Box. It is readonly.', 2, True)
+    # self.init()
+
+
+  def onExecute(self, command, inputs):
+    # (objects, plane, edge, spacing) = getInputs(command, inputs)
+    # visualize()
+    pass
 
   def init(self):
     self.product = self.app.activeProduct
