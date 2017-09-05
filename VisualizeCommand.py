@@ -86,6 +86,30 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     # moveFeats.add(moveFeatureInput)
 
   def slice(self, name, index, height, offset):
+    originalBodies = copy.copy(self.targetBodies)
+    baseBody = self.createBase(name, index, height, offset)
+    combineFeatures = self.rootComp.features.combineFeatures
+    combineInput = combineFeatures.createInput(baseBody, self.targetBodies)
+    combineInput.isKeepToolBodies = True
+    # combineInput.isNewComponent = True
+    combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
+    result = combineFeatures.add(combineInput)
+    resultBodies = adsk.core.ObjectCollection.create()
+    i = 0
+    # component = result.bodies.item(0).parentComponent
+    # component.name = '%s_%d' % (name, index)
+    for body in result.bodies:
+      body.name = '%s_%d_%d' % (name, index, i)
+      if name.find('conductive') == 0 :
+        body.appearance = self.appearance
+      resultBodies.add(body)
+      i = i + 1
+
+    baseBody = self.createBase(name, index, height, offset)
+    baseBody.isLightBulbOn = False
+
+
+  def createBase(self, name, index, height, offset):
     rMax = 100
     extrudes = self.rootComp.features.extrudeFeatures
     basePlane = self.rootComp.xZConstructionPlane
@@ -95,27 +119,16 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     planeInput.setByOffset(basePlane, val)
     plane = planes.add(planeInput)
 
-    originalBodies = copy.copy(self.targetBodies)
     sketches = self.rootComp.sketches
-    circleSketch = sketches.add(plane)
-    circles = circleSketch.sketchCurves.sketchCircles
+    sketch = sketches.add(plane)
+    lines = sketch.sketchCurves.sketchLines
     centerPoint = adsk.core.Point3D.create(0, 0, 0)
-    circle = circles.addByCenterRadius(centerPoint, rMax)
-    prof = circleSketch.profiles.item(0)
+    cornerPoint = adsk.core.Point3D.create(10, 10, 0)
+    rectLines = lines.addCenterPointRectangle(centerPoint, cornerPoint)
+    prof = sketch.profiles.item(0)
     distance = adsk.core.ValueInput.createByReal(offset)
     temp = extrudes.addSimple(prof, distance, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    body = temp.bodies.item(0)
-
-    combineFeatures = self.rootComp.features.combineFeatures
-    combineInput = combineFeatures.createInput(body, self.targetBodies)
-    combineInput.isKeepToolBodies = True
-    combineInput.operation = adsk.fusion.FeatureOperations.IntersectFeatureOperation
-    result = combineFeatures.add(combineInput)
-    resultBodies = adsk.core.ObjectCollection.create()
-    i = 0
-    for body in result.bodies:
-      body.name = '%s_%d_%d' % (name, index, i)
-      if name.find('conductive') == 0 :
-        body.appearance = self.appearance
-      resultBodies.add(body)
-      i = i + 1
+    baseBody = temp.bodies.item(0)
+    # baseBody.isLightBulbOnBulbOn = False
+    baseBody.name = 'base_%s_%d' % (name, index)
+    return baseBody

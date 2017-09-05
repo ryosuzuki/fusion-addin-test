@@ -48,6 +48,12 @@ class InstructionCommand(Fusion360CommandBase.Fusion360CommandBase):
       time.sleep(0.1)
     time.sleep(1)
     self.show(['structure', 'conductive'])
+    time.sleep(1)
+    self.sculpt(['base_structure_1'])
+    time.sleep(1)
+    self.sculpt(['base_structure_1', 'base_conductive_0'])
+    time.sleep(1)
+    self.sculpt(['base_structure', 'base_conductive'])
 
   def show(self, keywords):
     for i in range(self.rootComp.bRepBodies.count):
@@ -58,23 +64,32 @@ class InstructionCommand(Fusion360CommandBase.Fusion360CommandBase):
         body.isLightBulbOn = False
     self.view.refresh()
 
+
   def insert(self, keywords, offset):
+    vector = adsk.core.Vector3D.create(0.0, 0.0, offset)
+    transform = adsk.core.Matrix3D.create()
+    transform.translation = vector
+
     bodies = adsk.core.ObjectCollection.create()
     for i in range(self.rootComp.bRepBodies.count):
       body = self.rootComp.bRepBodies.item(i)
       if any(x in body.name for x in keywords):
         body.isLightBulbOn = True
         bodies.add(body)
-    vector = adsk.core.Vector3D.create(0.0, 0.0, offset)
-    transform = adsk.core.Matrix3D.create()
-    transform.translation = vector
+
     moveFeats = self.rootComp.features.moveFeatures
     moveFeatureInput = moveFeats.createInput(bodies, transform)
     moveFeats.add(moveFeatureInput)
     self.view.refresh()
 
 
-
-
+  def sculpt(self, keywords):
+    for i in range(self.rootComp.bRepBodies.count):
+      body = self.rootComp.bRepBodies.item(i)
+      if any(x in body.name for x in keywords):
+        body.isLightBulbOn = False
+      else:
+        body.isLightBulbOn = True
+    self.view.refresh()
 
 
