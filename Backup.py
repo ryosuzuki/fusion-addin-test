@@ -1,9 +1,6 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import copy
-
 from . import Fusion360CommandBase
-
-
 
 class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onPreview(self, command, inputs):
@@ -33,58 +30,13 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     self.init()
 
   def init(self):
-    self.product = self.app.activeProduct
-    self.design = adsk.fusion.Design.cast(self.product)
-    self.rootComp = self.design.rootComponent
-
-    vector = adsk.core.Vector3D.create(0.0, 2.0, 0.0)
-    transform = adsk.core.Matrix3D.create()
-    transform.translation = vector
-
-    # moveFeats = self.rootComp.features.moveFeatures
-    # moveFeatureInput = moveFeats.createInput(resultBodies, transform)
-    # moveFeats.add(moveFeatureInput)
-
-    componentName = "function-%d" % 1
-    self.component = self.design.allComponents.itemByName(componentName)
-
-
-    # self.functionBodies = adsk.core.ObjectCollection.create()
-
-    # materialLib = self.app.materialLibraries.itemByName("Fusion 360 Appearance Library")
-    # self.appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)") #
-
-    # sketches = self.component.sketches
-    # sketch = sketches.item(0)
-    # extrudes = self.component.features.extrudeFeatures
-    # plane = sketch.referencePlane
-
-    # for i in range(sketch.profiles.count):
-    #   prof = sketch.profiles.item(i)
-    #   distance = adsk.core.ValueInput.createByReal(0.1)
-    #   extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    #   extrudeInput.setDistanceExtent(False, distance)
-    #   extrude = extrudes.add(extrudeInput)
-
-    #   for body in extrude.bodies:
-    #     body.appearance = self.appearance
-    #     body.isLightBulbOn = True
-    #     body.name = "sheet-%d" % i
-    #     self.functionBodies.add(body)
-    #     # self.targetBodies.add(body)
-
-    firstBodies
-    with open('first.pickle', mode='rb') as f:
-      firstBodies = pickle.load(f)
-
-    moveFeats = self.component.features.moveFeatures
-    moveFeatureInput = moveFeats.createInput(config.firstBodies, transform)
-    moveFeats.add(moveFeatureInput)
-
-
-
-    return
-
+    app = adsk.core.Application.get()
+    ui  = app.userInterface
+    product = app.activeProduct
+    rootComp = product.rootComponent
+    extrudes = rootComp.features.extrudeFeatures
+    design = adsk.fusion.Design.cast(product)
+    rootComp = design.rootComponent
 
     materialLib = app.materialLibraries.itemByName("Fusion 360 Appearance Library")
     appearance = materialLib.appearances.itemByName("Plastic - Matte (Yellow)") # "Paint - Enamel Glossy (Yellow)"

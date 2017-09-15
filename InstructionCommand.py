@@ -14,9 +14,14 @@ class InstructionCommand(Fusion360CommandBase.Fusion360CommandBase):
     pass
 
   def onCreate(self, command, inputs):
-     pass
+    self.app = adsk.core.Application.get()
+    self.ui  = self.app.userInterface
+    self.ui.messageBox("Downloaded PDF Files")
+    pass
 
   def onExecute(self, command, inputs):
+    return
+
     self.project = None
     self.projects = []
     self.files = []
@@ -36,7 +41,6 @@ class InstructionCommand(Fusion360CommandBase.Fusion360CommandBase):
     self.view = self.app.activeViewport
 
     self.animate()
-    return
 
 
   def animate(self):

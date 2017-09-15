@@ -1,9 +1,11 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from . import Fusion360CommandBase
 
-from . import VisualizeCommand
+from . import GenerateCommand
 from . import TestCommand
 
+
+componentIndex = 1
 
 class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onPreview(self, command, inputs):
@@ -15,7 +17,7 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onInputChanged(self, command, inputs, changedInput):
     if changedInput.id == self.fileCommandId:
       name = command.commandInputs.itemById(self.fileCommandId).selectedItem.name
-      self.file = self.files[name]
+      self.file = self.fileNames[name]
 
     if changedInput.id == self.planeCommandId:
       selection = changedInput.selection(0)
@@ -40,7 +42,7 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     selectionPlaneInput.addSelectionFilter('PlanarFaces')
 
     self.projects = self.app.data.dataProjects
-    self.project = self.projects[2]
+    self.project = self.projects[1]
     self.files = self.project.rootFolder.dataFiles
 
     self.projectNames[self.project.name] = self.project
@@ -48,10 +50,10 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     addItemsToDropdown(self.projectNames, dropdownInput)
 
     self.fileNames = {}
-    self.file = self.files[3]
-    self.fileNames[self.file.name] = self.file
-    # for file in self.files:
-    #   self.fileNames[file.name] = file
+    # self.file = self.files[4]
+    # self.fileNames[self.file.name] = self.file
+    for file in self.files:
+      self.fileNames[file.name] = file
 
     dropdownInput = inputs.addDropDownCommandInput(self.fileCommandId, 'File', adsk.core.DropDownStyles.TextListDropDownStyle)
     addItemsToDropdown(self.fileNames , dropdownInput)
@@ -79,7 +81,9 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     occ.appearance = appearance
 
     component = occ.component
-    component.name = "function"
+    global componentIndex
+    component.name = "function-%d" % componentIndex
+    componentIndex = componentIndex + 1
 
     # self.onCreate(command, inputs)
     # testCommand = TestCommand.TestCommand('Visualize', '', './resources', 'visualize', 'FusionSolidEnvironment', 'SolidScriptsAddinsPanel', False)
