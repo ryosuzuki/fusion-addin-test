@@ -16,7 +16,7 @@ class InstructionCommand(Fusion360CommandBase.Fusion360CommandBase):
   def onCreate(self, command, inputs):
     self.app = adsk.core.Application.get()
     self.ui  = self.app.userInterface
-    self.ui.messageBox("Downloaded PDF Files")
+    self.ui.messageBox("Downloaded functional layers as PDF\n- insert functional-layer-1 into layer #7 (0.7mm)\n- insert functional-layer-2 into layer #304 (30.4mm)")
     pass
 
   def onExecute(self, command, inputs):

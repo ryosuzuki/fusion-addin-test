@@ -103,7 +103,7 @@ class GenerateCommand(Fusion360CommandBase.Fusion360CommandBase):
 
     self.slice('structure', 0, 0.0, firstPos)
     self.slice('conductive', 1, firstPos, 0.1)
-    self.slice('structure', 2, firstPos + 0.1, secondPos - (firstPos + 0.1))
+    self.slice('structure', 2, firstPos + 0.1, secondPos - (firstPos + 0.12))
     self.slice('conductive', 3, secondPos, 0.1)
     self.slice('structure', 4, secondPos + 0.1, self.yMax - (secondPos + 0.1))
     # self.slice('structure', 1, firstPos + 0.1, secondPos - (secondPos + 0.1))
@@ -218,13 +218,19 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
       if body.name.find("conductive_1_0") == 0:
         body.isLightBulbOn = True
         first.add(body)
-      if body.name.find("structure_2_0") == 0:
+      if body.name.find("structure_2_1") == 0:
         body.isLightBulbOn = True
         second.add(body)
-      if body.name.find("conductive_3_0") == 0:
+      if body.name.find("conductive_3_1") == 0:
         body.isLightBulbOn = True
         third.add(body)
-      if body.name.find("structure_4_0") == 0:
+      if body.name.find("conductive_3_2") == 0:
+        body.isLightBulbOn = True
+        third.add(body)
+      if body.name.find("conductive_3_3") == 0:
+        body.isLightBulbOn = True
+        third.add(body)
+      if body.name.find("structure_4_1") == 0:
         body.isLightBulbOn = True
         fourth.add(body)
 
@@ -234,12 +240,13 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     global firstBodies
     transform = adsk.core.Matrix3D.create()
     transform.translation = adsk.core.Vector3D.create(0.0, height * index, 0.0)
-
     self.component = self.design.allComponents.itemByName("function-1")
     moveFeats = self.component.features.moveFeatures
     moveFeatureInput = moveFeats.createInput(firstBodies, transform)
     moveFeats.add(moveFeatureInput)
 
+    transform = adsk.core.Matrix3D.create()
+    transform.translation = adsk.core.Vector3D.create(0.0, height * index - 0.02, 0.0)
     moveFeats = self.rootComp.features.moveFeatures
     moveFeatureInput = moveFeats.createInput(first, transform)
     moveFeats.add(moveFeatureInput)
@@ -262,6 +269,8 @@ class VisualizeCommand(Fusion360CommandBase.Fusion360CommandBase):
     moveFeatureInput = moveFeats.createInput(secondBodies, transform)
     moveFeats.add(moveFeatureInput)
 
+    transform = adsk.core.Matrix3D.create()
+    transform.translation = adsk.core.Vector3D.create(0.0, height * index - 0.02, 0.0)
     moveFeats = self.rootComp.features.moveFeatures
     moveFeatureInput = moveFeats.createInput(third, transform)
     moveFeats.add(moveFeatureInput)

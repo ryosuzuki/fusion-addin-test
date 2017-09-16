@@ -55,6 +55,14 @@ class ImportCommand(Fusion360CommandBase.Fusion360CommandBase):
     for file in self.files:
       self.fileNames[file.name] = file
 
+    # sortedFileNames = {}
+    # for name in sorted(self.fileNames):
+    #   sortedFileNames[name] = self.fileNames[name]
+
+    # self.fileNames = sortedFileNames
+
+
+
     dropdownInput = inputs.addDropDownCommandInput(self.fileCommandId, 'File', adsk.core.DropDownStyles.TextListDropDownStyle)
     addItemsToDropdown(self.fileNames , dropdownInput)
 
